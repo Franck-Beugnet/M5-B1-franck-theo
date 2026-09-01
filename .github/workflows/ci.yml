@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install model deps
-        run: pip install -r services/model/requirements.txt pytest
+        run: pip install -r services/model/requirements.txt pytest httpx
       - name: Tests API model (hors contract test)
         run: pytest -v services/model/tests -k "not model_contract_features_and_output"
 
@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install model deps
-        run: pip install -r services/model/requirements.txt pytest
+        run: pip install -r services/model/requirements.txt pytest httpx
       - name: Contract test du modele (gate release)
         run: pytest -v services/model/tests -k "model_contract_features_and_output"
 
