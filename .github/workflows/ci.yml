@@ -23,22 +23,11 @@ jobs:
         run: pip install -r services/model/requirements.txt pytest==8.3.3 httpx==0.28.1
       - name: Tests API model (hors contract test)
         run: pytest -v services/model/tests -k "not model_contract_features_and_output"
-
-  contract-test-model:
-    needs: tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install model deps
-        run: pip install -r services/model/requirements.txt pytest==8.3.3 httpx==0.28.1
       - name: Contract test du modele (gate release)
         run: pytest -v services/model/tests -k "model_contract_features_and_output"
 
   build-model-image:
-    needs: [tests, contract-test-model]
+    needs: [tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +35,7 @@ jobs:
         run: docker build -t pyrenex-model:ci ./services/model
 
   push-release-tag:
-    needs: [tests, contract-test-model, build-model-image]
+    needs: [tests, build-model-image]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
