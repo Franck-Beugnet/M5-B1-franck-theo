@@ -1,0 +1,21 @@
+loan_amnt,term,int_rate,installment,grade,emp_length,home_ownership,annual_inc,verification_status,purpose,dti,delinq_2yrs,fico_range_low,revol_util,loan_status
+22400,36 months,14.4,769.94,C,8 years,MORTGAGE,78200,Not Verified,credit_card,5.0,0,690,39.3,Fully Paid
+17200,60 months,27.52,530.57,G,< 1 year,MORTGAGE,68000,Not Verified,debt_consolidation,10.13,0,655,1.2,Fully Paid
+9300,36 months,6.68,285.8,A,4 years,OWN,45200,Source Verified,debt_consolidation,20.47,0,732,27.6,Fully Paid
+5100,36 months,20.57,191.02,E,10+ years,RENT,86100,Not Verified,debt_consolidation,22.51,1,675,32.3,Fully Paid
+8100,60 months,6.16,157.2,A,2 years,RENT,46800,Not Verified,debt_consolidation,15.68,0,739,80.6,Charged Off
+15100,36 months,15.01,523.52,D,10+ years,RENT,42800,Verified,debt_consolidation,18.22,0,682,70.4,Fully Paid
+9500,60 months,7.68,191.17,A,4 years,RENT,25800,Not Verified,credit_card,16.29,1,737,85.7,Fully Paid
+14500,36 months,9.83,466.72,B,1 year,RENT,28000,Verified,debt_consolidation,13.68,0,728,59.6,Fully Paid
+21100,36 months,7.45,655.86,A,10+ years,RENT,106000,Verified,credit_card,15.05,0,735,75.9,Fully Paid
+11100,60 months,10.98,241.23,B,7 years,RENT,65200,Source Verified,debt_consolidation,7.81,1,745,26.6,Fully Paid
+16300,36 months,15.52,569.2,D,4 years,MORTGAGE,95300,Not Verified,major_purchase,15.8,1,692,18.5,Fully Paid
+8400,36 months,17.31,300.78,D,,MORTGAGE,71400,Source Verified,credit_card,34.4,0,675,37.9,Charged Off
+8300,36 months,5.72,251.45,A,10+ years,RENT,78700,Source Verified,other,15.24,0,763,16.4,Fully Paid
+9600,36 months,5.27,288.89,A,4 years,RENT,38000,Source Verified,debt_consolidation,7.66,0,729,57.3,Fully Paid
+14500,36 months,18.24,525.96,D,10+ years,MORTGAGE,58000,Verified,small_business,11.33,0,688,74.6,Charged Off
+16000,60 months,12.27,358.1,C,6 years,MORTGAGE,40100,Not Verified,credit_card,5.42,1,706,42.0,Fully Paid
+7900,36 months,9.31,252.36,B,2 years,RENT,63100,Source Verified,credit_card,29.36,0,701,5.5,Fully Paid
+12000,36 months,9.3,383.27,B,10+ years,MORTGAGE,44200,Verified,car,10.92,1,705,51.9,Fully Paid
+7000,36 months,15.69,245.03,D,10+ years,RENT,55600,Verified,debt_consolidation,11.95,0,694,41.8,Fully Paid
+21200,36 months,14.05,725.08,D,7 years,MORTGAGE,41200,Verified,other,9.67,0,691,70.3,Fully Paid
