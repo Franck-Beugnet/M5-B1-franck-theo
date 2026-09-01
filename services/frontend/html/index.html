@@ -16,12 +16,71 @@
 <body>
   <h1>Pyrenex Crédit — Évaluation du risque de défaut</h1>
 
-  <!-- TODO 1 — construire le formulaire avec les 14 champs de LoanApplication
-       (cf. services/*/app/schemas.py) : loan_amnt, int_rate, installment,
-       annual_inc, dti, delinq_2yrs, fico_range_low, revol_util (numériques)
-       + term, grade, home_ownership, verification_status, purpose, emp_length. -->
   <form id="scoreForm">
-    <!-- … champs à compléter … -->
+    <label for="loan_amnt">Montant du prêt (loan_amnt)</label>
+    <input id="loan_amnt" name="loan_amnt" type="number" min="500" max="40000" step="0.01" value="10000" required>
+
+    <label for="int_rate">Taux d'intérêt % (int_rate)</label>
+    <input id="int_rate" name="int_rate" type="number" min="0" max="50" step="0.01" value="13.5" required>
+
+    <label for="installment">Mensualité (installment)</label>
+    <input id="installment" name="installment" type="number" min="0" max="2000" step="0.01" value="340" required>
+
+    <label for="annual_inc">Revenu annuel (annual_inc)</label>
+    <input id="annual_inc" name="annual_inc" type="number" min="0" max="10000000" step="0.01" value="55000" required>
+
+    <label for="dti">Debt-to-income (dti)</label>
+    <input id="dti" name="dti" type="number" min="0" max="200" step="0.01" value="18.2" required>
+
+    <label for="delinq_2yrs">Retards 2 ans (delinq_2yrs)</label>
+    <input id="delinq_2yrs" name="delinq_2yrs" type="number" min="0" max="50" step="1" value="0" required>
+
+    <label for="fico_range_low">FICO bas (fico_range_low)</label>
+    <input id="fico_range_low" name="fico_range_low" type="number" min="300" max="850" step="1" value="690" required>
+
+    <label for="revol_util">Utilisation revolving % (revol_util)</label>
+    <input id="revol_util" name="revol_util" type="number" min="0" max="300" step="0.01" value="42.5" required>
+
+    <label for="term">Durée (term)</label>
+    <select id="term" name="term" required>
+      <option value="36 months" selected>36 months</option>
+      <option value="60 months">60 months</option>
+    </select>
+
+    <label for="grade">Grade (grade)</label>
+    <select id="grade" name="grade" required>
+      <option value="A">A</option>
+      <option value="B" selected>B</option>
+      <option value="C">C</option>
+      <option value="D">D</option>
+      <option value="E">E</option>
+      <option value="F">F</option>
+      <option value="G">G</option>
+    </select>
+
+    <label for="home_ownership">Logement (home_ownership)</label>
+    <select id="home_ownership" name="home_ownership" required>
+      <option value="RENT">RENT</option>
+      <option value="OWN">OWN</option>
+      <option value="MORTGAGE" selected>MORTGAGE</option>
+      <option value="OTHER">OTHER</option>
+      <option value="NONE">NONE</option>
+      <option value="ANY">ANY</option>
+    </select>
+
+    <label for="verification_status">Vérification (verification_status)</label>
+    <select id="verification_status" name="verification_status" required>
+      <option value="Verified">Verified</option>
+      <option value="Source Verified">Source Verified</option>
+      <option value="Not Verified" selected>Not Verified</option>
+    </select>
+
+    <label for="purpose">Objet du prêt (purpose)</label>
+    <input id="purpose" name="purpose" type="text" value="debt_consolidation" required>
+
+    <label for="emp_length">Ancienneté pro (emp_length)</label>
+    <input id="emp_length" name="emp_length" type="text" value="10+ years" required>
+
     <button type="submit">Évaluer le risque</button>
   </form>
 
@@ -32,10 +91,56 @@
     const result = document.getElementById('result');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      // TODO 2 — construire le payload JSON depuis le formulaire
-      //   (penser à convertir les champs numériques en Number).
-      // TODO 3 — POST vers /api/score (même origine grâce au proxy nginx),
-      //   afficher prediction + probability, gérer les erreurs.
+      const formData = new FormData(form);
+      const payload = {
+        loan_amnt: Number(formData.get('loan_amnt')),
+        int_rate: Number(formData.get('int_rate')),
+        installment: Number(formData.get('installment')),
+        annual_inc: Number(formData.get('annual_inc')),
+        dti: Number(formData.get('dti')),
+        delinq_2yrs: Number(formData.get('delinq_2yrs')),
+        fico_range_low: Number(formData.get('fico_range_low')),
+        revol_util: Number(formData.get('revol_util')),
+        term: String(formData.get('term')),
+        grade: String(formData.get('grade')),
+        home_ownership: String(formData.get('home_ownership')),
+        verification_status: String(formData.get('verification_status')),
+        purpose: String(formData.get('purpose')),
+        emp_length: String(formData.get('emp_length')),
+      };
+
+      result.style.display = 'none';
+      result.className = '';
+
+      try {
+        const response = await fetch('/api/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const detail = body.detail || `Erreur backend (${response.status})`;
+          throw new Error(detail);
+        }
+
+        const prediction = body.prediction;
+        const probability = Number(body.probability);
+        const requestId = body.request_id || 'n/a';
+
+        result.className = prediction === 1 ? 'ko' : 'ok';
+        result.innerHTML = `
+          <strong>Prédiction :</strong> ${prediction === 1 ? 'Risque de défaut' : 'Faible risque'}<br>
+          <strong>Probabilité de défaut :</strong> ${(probability * 100).toFixed(2)} %<br>
+          <strong>Request ID :</strong> ${requestId}
+        `;
+      } catch (err) {
+        result.className = 'ko';
+        result.textContent = `Erreur: ${err.message}`;
+      }
+
+      result.style.display = 'block';
     });
   </script>
 </body>

@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import os
 
-from fastapi import FastAPI, Request
+import httpx
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.middleware import LoggingMiddleware
@@ -41,14 +42,40 @@ async def health() -> HealthResponse:
     """Liveness du backend (ne dépend PAS du model)."""
     return HealthResponse(status="ok")
 
+@app.post("/score", response_model=Prediction)
+async def score(application: LoanApplication, request: Request) -> Prediction:
+    """Valide l'entree puis orchestre un appel interne au service model."""
+    request_id = getattr(request.state, "request_id", None) or request.headers.get(
+        "X-Request-ID", "n/a"
+    )
+    headers = {"X-Request-ID": request_id}
+    payload = application.model_dump()
 
-# TODO 2 — route POST /score :
-#   - reçoit une LoanApplication (validée par Pydantic),
-#   - appelle MODEL_URL/predict en interne (httpx async),
-#   - propage le header X-Request-ID,
-#   - gère les erreurs : model injoignable → 503, model en erreur → 502,
-#   - retourne un objet Prediction.
-#
-# @app.post("/score", response_model=Prediction)
-# async def score(application: LoanApplication, request: Request) -> Prediction:
-#     ...
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(f"{MODEL_URL}/predict", json=payload, headers=headers)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Model service unreachable: {exc.__class__.__name__}",
+        ) from exc
+
+    if response.status_code >= 500:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Model service returned an upstream error",
+        )
+    if response.status_code != status.HTTP_200_OK:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Unexpected model response status: {response.status_code}",
+        )
+
+    try:
+        body = response.json()
+        return Prediction(**body)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Invalid model response payload: {exc.__class__.__name__}",
+        ) from exc
