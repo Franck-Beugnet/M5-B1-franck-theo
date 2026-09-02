@@ -26,8 +26,34 @@ jobs:
       - name: Contract test du modele (gate release)
         run: pytest -v services/model/tests -k "model_contract_features_and_output"
 
-  build-model-image:
+  evaluate-model:
     needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install evaluation deps
+        run: pip install -r requirements-dev.txt
+      - name: Evaluate model on reference set (gate)
+        run: python scripts/evaluate_model.py --release-tag ci-${{ github.run_number }}
+      - name: Degradation path smoke test (must fail)
+        run: |
+          set +e
+          python scripts/evaluate_model.py --release-tag ci-degrade-${{ github.run_number }} --degrade
+          CODE=$?
+          set -e
+
+          if [ "$CODE" -eq 0 ]; then
+            echo "ERROR: --degrade should fail with non-zero exit code"
+            exit 1
+          fi
+
+          echo "OK: --degrade failed as expected with exit code $CODE"
+
+  build-model-image:
+    needs: [tests, evaluate-model]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
