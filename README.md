@@ -83,24 +83,24 @@ Vous repartez **chacun·e** du repo binôme, dans une branche perso
 
 **M5-B1 — avant mercredi 12h30**
 
-- [ ] `docker compose up --build` démarre les **3 services** de façon **reproductible**, healthchecks verts
-- [ ] `/metrics` exposé côté `model` **et** `backend`
-- [ ] Dashboard Grafana provisionné **automatiquement** (3 panels : vie / vitesse / comportement)
-- [ ] Workflow CI **vert**, image poussée sur GHCR, tag `v1.0.0-prod`
-- [ ] Le **contract test** du modèle bloque la release s'il est rouge
+- [x] `docker compose up --build` démarre les **3 services** de façon **reproductible**, healthchecks verts
+- [x] `/metrics` exposé côté `model` **et** `backend`
+- [x] Dashboard Grafana provisionné **automatiquement** (3 panels : vie / vitesse / comportement)
+- [x] Workflow CI **vert**, image poussée sur GHCR, tag `v1.0.0-prod`
+- [x] Le **contract test** du modèle bloque la release s'il est rouge
       *(il vérifie le **contrat technique** de l'API — pas la performance du
       modèle : ça, c'est l'évaluation continue de B2)*
-- [ ] `runbook.md` — 4 procédures (Service KO / Latence / Métrique modèle / Rollback)
-- [ ] `README.md` — schéma Mermaid de l'archi + démarrage en 3 commandes
-- [ ] Commits binôme : `Co-authored-by:` ou auteurs nominatifs
+- [x] `runbook.md` — 4 procédures (Service KO / Latence / Métrique modèle / Rollback)
+- [x] `README.md` — schéma Mermaid de l'archi + démarrage en 3 commandes
+- [x] Commits binôme : `Co-authored-by:` ou auteurs nominatifs
 
 **M5-B2 — avant vendredi 17h**
 
-- [ ] `data/reference_set.csv` (~500 lignes) **construit par vous** depuis le holdout M1, figé, versionné
-- [ ] `data/reference_baseline.json` — le golden run, gelé sur **ce** jeu
-- [ ] `scripts/evaluate_model.py` — 4 métriques, ≥ 2 runs MLflow comparables
-- [ ] `evaluation_thresholds.md` — 4 métriques × golden run / plancher absolu / baisse max / **justification**, tolérance relative ≥ 2 σ (bootstrap)
-- [ ] Étape `evaluate-model` dans la CI : `--degrade` fait **échouer** la release
+- [x] `data/reference_set.csv` (~500 lignes) **construit par vous** depuis le holdout M1, figé, versionné
+- [x] `data/reference_baseline.json` — le golden run, gelé sur **ce** jeu
+- [x] `scripts/evaluate_model.py` — 4 métriques, ≥ 2 runs MLflow comparables
+- [x] `evaluation_thresholds.md` — 4 métriques × golden run / plancher absolu / baisse max / **justification**, tolérance relative ≥ 2 σ (bootstrap)
+- [x] Étape `evaluate-model` dans la CI : `--degrade` fait **échouer** la release
       *(`mlruns/` est gitignoré : la preuve passe par l'**artefact CI**, pas par un commit)*
 
 ---
@@ -156,6 +156,74 @@ ressources/                # 📚 mini-cours d'appui (lecture juste-à-temps)
 > expose déjà `/metrics` — répliquez ce pattern sur le `backend`.
 
 ---
+
+## 📈 Évaluation continue (M5-B2)
+
+Cette partie est implémentée et sert de garde-fou release contre les
+régressions silencieuses du modèle.
+
+### Artifacts versionnés
+
+- `data/reference_set.csv` : jeu de référence figé (~500 lignes).
+- `data/reference_baseline.json` : golden run mesuré sur ce jeu.
+- `scripts/evaluate_model.py` : évalue, trace MLflow, compare aux seuils,
+  retourne `0` (OK) ou `1` (blocage).
+- `scripts/bootstrap_tolerance.py` : mesure le bruit bootstrap (σ, 2σ).
+- `evaluation_thresholds.md` : choix des seuils et justifications.
+- `tests/test_evaluation.py` : tests pytest dédiés à l'évaluation continue.
+
+### Principe de comparaison
+
+La CI compare la release courante au **golden run** (`data/reference_baseline.json`),
+jamais à `metrics_holdout` de M1.
+
+Pourquoi : le holdout M1 et le jeu de référence n'ont pas la même population.
+Comparer les deux mesurerait un écart de population, pas une dégradation du modèle.
+
+### Commandes utiles
+
+```bash
+# 1) (Une fois) geler le golden run si besoin
+python scripts/evaluate_model.py --freeze-baseline
+
+# 2) Run de release normal (doit sortir 0 si pas de dégradation)
+python scripts/evaluate_model.py --release-tag v2.0.0
+
+# 3) Test du chemin rouge (doit sortir non-zéro)
+python scripts/evaluate_model.py --release-tag bad --degrade
+
+# 4) Mesurer le bruit de mesure pour calibrer les tolérances
+python scripts/bootstrap_tolerance.py --n-bootstrap 1000 --seed 42
+
+# 5) Visualiser les runs
+mlflow ui
+```
+
+### Seuils et bruit de mesure
+
+Stratégie retenue : **hybride** (plancher absolu + baisse max vs golden run).
+
+Les tolérances relatives sont dimensionnées avec le bootstrap et respectent
+la règle `tolérance >= 2σ` (voir `evaluation_thresholds.md`).
+
+### Intégration CI/CD
+
+Dans `.github/workflows/ci.yml` :
+
+- job `evaluate-model` exécuté **après** les tests, **avant** le build,
+- exécution normale de `scripts/evaluate_model.py` (gate release),
+- smoke test volontaire `--degrade` qui doit échouer, pour prouver que le
+  chemin rouge bloque réellement.
+
+### Tests d'évaluation
+
+`tests/test_evaluation.py` vérifie :
+
+- run nominal => code retour `0`, pas de violation,
+- run `--degrade` => code retour non-zéro, violations présentes,
+- baseline manquante => message explicite demandant `--freeze-baseline`.
+
+Ces tests sont branchés dans le workflow GitHub Actions.
 
 ## 📚 Ressources
 
