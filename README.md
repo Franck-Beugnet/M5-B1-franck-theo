@@ -199,6 +199,35 @@ python scripts/bootstrap_tolerance.py --n-bootstrap 1000 --seed 42
 mlflow ui
 ```
 
+### Afficher MLflow
+
+Depuis la racine du projet, lancer l'interface MLflow locale :
+
+```bash
+py -3.12 -m mlflow ui --backend-store-uri ./mlruns
+```
+
+Puis ouvrir dans le navigateur :
+
+```text
+http://127.0.0.1:5000
+```
+
+Dans l'UI, aller dans l'expérience `pyrenex-eval-continue` pour comparer les runs.
+
+Ce qu'on y retrouve pour chaque release :
+
+- `Params` : `model_version`, `release_tag`, `reference_set`, `dataset_sha256`, hyperparamètres `hp_*`.
+- `Metrics` : `f1_macro`, `f1_default`, `roc_auc`, `recall_default`.
+- `Tags` : `release_blocked`.
+
+Si l'écran est vide :
+
+1. exécuter un run local, par exemple `py -3.12 scripts/evaluate_model.py --release-tag local-check`
+2. relancer `py -3.12 -m mlflow ui --backend-store-uri ./mlruns`
+
+Note environnement : sur cette machine, préférer `py -3.12` au `.venv` local si celui-ci est en Python 3.14, pour rester compatible avec les dépendances du modèle.
+
 ### Seuils et bruit de mesure
 
 Stratégie retenue : **hybride** (plancher absolu + baisse max vs golden run).
