@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-09-02T09:14:01.130662+00:00",
+  "model_name": "pyrenex_risk_v2",
+  "model_version": "v2.0.0",
+  "reference_set": "data/reference_set.csv",
+  "n_reference": 500,
+  "class_distribution": {
+    "Charged Off": 250,
+    "Fully Paid": 250
+  },
+  "reference_set_sha256": "63c75c7e557fc8d350ca990d41b7fecf2459213bf26405001660e6a4ee58fc2d",
+  "model_artifact_sha256": "985a0c15db64079cb1d35d65115819a04582d66f0bb56c78f532e8bb796df3c2",
+  "metrics": {
+    "f1_macro": 0.641884,
+    "f1_default": 0.635438,
+    "roc_auc": 0.712016,
+    "recall_default": 0.624
+  }
+}
