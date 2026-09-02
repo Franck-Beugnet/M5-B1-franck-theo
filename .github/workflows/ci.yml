@@ -19,12 +19,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install model deps
-        run: pip install -r services/model/requirements.txt pytest==8.3.3 httpx==0.28.1
+      - name: Install test deps
+        run: pip install -r requirements-dev.txt
       - name: Tests API model (hors contract test)
         run: pytest -v services/model/tests -k "not model_contract_features_and_output"
       - name: Contract test du modele (gate release)
         run: pytest -v services/model/tests -k "model_contract_features_and_output"
+      - name: Tests evaluation continue
+        run: pytest -v tests/test_evaluation.py
 
   evaluate-model:
     needs: [tests]
