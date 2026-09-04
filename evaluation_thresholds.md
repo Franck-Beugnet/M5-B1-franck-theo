@@ -3,13 +3,22 @@
 > Doit être lisible par Sophie Léger (Lead Data) et le DPO. **Chaque seuil
 > est justifié** par une raison chiffrée.
 
-Stratégie retenue : **hybride** (plancher absolu + baisse max vs golden run).
-Un plancher absolu seul ne détecte pas une dérive progressive silencieuse ;
-une tolérance relative seule ne protège pas contre un modèle qui a toujours
-été médiocre. Les deux ensemble couvrent les deux risques.
-
 Jeu de référence : `data/reference_set.csv` (500 lignes, sous-échantillon
 stratifié figé du holdout M1, ratio de défauts préservé ~18,4 %).
+
+## Stratégies considérées
+
+| Stratégie | Principe | Avantage | Limite |
+|---|---|---|---|
+| **Absolu** | Bloquer si métrique < seuil fixe (ex. F1 macro ≥ 0.55) | Simple, lisible pour le DPO ; protège contre un modèle devenu inacceptable en valeur absolue | Ne détecte pas une dérive progressive tant que le seuil fixe n'est pas franchi ; seuil arbitraire s'il n'est adossé à rien |
+| **Relatif** | Bloquer si baisse > X vs golden run (ex. -0.05 max) | Détecte toute régression par rapport à l'état de référence connu, même à un niveau encore « correct » en absolu | Ne protège pas si le golden run était déjà médiocre ; inutile (faux rouges) si la tolérance est sous le bruit d'échantillonnage du jeu |
+| **Hybride** (retenue) | Les deux combinés | Couvre les deux risques : dérive progressive **et** modèle structurellement mauvais | Deux seuils à maintenir et justifier au lieu d'un |
+
+**Stratégie retenue : hybride.** Un plancher absolu seul ne détecte pas une
+dérive progressive silencieuse ; une tolérance relative seule ne protège pas
+contre un modèle qui a toujours été médiocre. Les deux ensemble couvrent les
+deux risques, au prix d'un seuil de plus à documenter — jugé acceptable vu
+l'enjeu (scoring crédit).
 
 ## Deux baselines, à ne pas confondre
 
