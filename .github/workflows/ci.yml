@@ -37,7 +37,7 @@ jobs:
       - name: Install deps (eval continue)
         run: pip install -r requirements-dev.txt
       - name: Evaluation continue vs golden run
-        run: python scripts/evaluate_model.py --release-tag "ci-${{ github.sha }}" --degrade
+        run: python scripts/evaluate_model.py --release-tag "ci-${{ github.sha }}"
 
   build-model-image:
     needs: [tests, evaluate-model]
