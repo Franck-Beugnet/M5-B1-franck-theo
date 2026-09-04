@@ -79,6 +79,29 @@ Vous repartez **chacun·e** du repo binôme, dans une branche perso
 > holdout M1, et sa composition est une **décision à argumenter**.
 > Mode d'emploi : [`data/README.md`](./data/README.md).
 
+### Évaluation continue (M5-B2)
+
+À chaque release, un garde-fou automatique recalcule les métriques du modèle
+sur un jeu de référence figé et **bloque la release** en cas de dégradation.
+
+| Fichier | Rôle |
+|---|---|
+| [`data/reference_set.csv`](./data/reference_set.csv) | Jeu de référence figé (500 lignes, sous-échantillon stratifié du holdout M1, ratio de défauts préservé ~18,4 %) — [`scripts/build_reference_set.py`](./scripts/build_reference_set.py) pour le reproduire |
+| [`data/reference_baseline.json`](./data/reference_baseline.json) | Golden run (métriques gelées sur le jeu de référence, via `--freeze-baseline`) |
+| [`scripts/evaluate_model.py`](./scripts/evaluate_model.py) | Calcule les 4 métriques (F1 macro, F1 défaut, ROC-AUC, recall défaut), les trace dans **MLflow**, compare aux seuils, sort un code retour 0/1 |
+| [`scripts/bootstrap_noise.py`](./scripts/bootstrap_noise.py) | Mesure le bruit d'échantillonnage (bootstrap) du jeu de référence, pour dimensionner les tolérances |
+| [`evaluation_thresholds.md`](./evaluation_thresholds.md) | Seuils (stratégie hybride), justifiés, avec la tolérance relative ≥ 2σ bootstrap |
+| [`tests/test_evaluation.py`](./tests/test_evaluation.py) | Tests pytest (métriques, seuils, cas d'erreur, chemin bout-en-bout `exit 0` / `exit 1`) |
+| `.github/workflows/ci.yml` — job `evaluate-model` | Étape bloquante en CI, entre `tests` et `build-model-image` ; alerte Discord (webhook, bonus) si le job échoue |
+
+```bash
+python scripts/build_reference_set.py          # (une fois) reconstruit le jeu de référence
+python scripts/evaluate_model.py --freeze-baseline   # (une fois) gèle le golden run
+python scripts/evaluate_model.py --release-tag v2.0.0   # évalue une release
+python scripts/bootstrap_noise.py              # mesure le bruit du jeu de référence
+pytest -v tests/test_evaluation.py
+```
+
 ### ✅ Checklist livrables
 
 **M5-B1 — avant mercredi 12h30**
