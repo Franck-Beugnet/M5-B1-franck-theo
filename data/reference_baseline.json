@@ -1,0 +1,11 @@
+{
+  "model_version": "v2.0.0",
+  "reference_set": "data/reference_set.csv",
+  "n_reference": 500,
+  "metrics": {
+    "f1_macro": 0.596835279112158,
+    "f1_default": 0.4250871080139373,
+    "roc_auc": 0.7249840153452686,
+    "recall_default": 0.6630434782608695
+  }
+}
