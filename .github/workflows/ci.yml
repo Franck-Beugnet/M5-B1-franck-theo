@@ -29,6 +29,8 @@ jobs:
   evaluate-model:
     needs: [tests]
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,8 +38,16 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install deps (eval continue)
         run: pip install -r requirements-dev.txt
+      - name: Tests evaluation continue
+        run: pytest -v tests/test_evaluation.py
       - name: Evaluation continue vs golden run
         run: python scripts/evaluate_model.py --release-tag "ci-${{ github.sha }}"
+      - name: Alerte Discord (release bloquee)
+        if: failure() && env.DISCORD_WEBHOOK_URL != ''
+        run: |
+          curl -sf -H "Content-Type: application/json" -X POST \
+            -d "{\"content\": \":rotating_light: **Release bloquee** — evaluate-model a echoue sur \`${{ github.ref_name }}\` (\`${{ github.sha }}\`).\nDetails : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$DISCORD_WEBHOOK_URL"
 
   build-model-image:
     needs: [tests, evaluate-model]
