@@ -39,14 +39,14 @@ MODELS_DIR = ROOT / "services" / "model" / "models"
 REFERENCE_SET = ROOT / "data" / "reference_set.csv"
 REFERENCE_BASELINE = ROOT / "data" / "reference_baseline.json"
 
-# TODO 1 — définir vos seuils (stratégie absolu / relatif / hybride).
-#   Documentez-les ET justifiez-les dans evaluation_thresholds.md.
-#   ⚠️ Une tolérance relative n'a de sens que si elle est **plus grande que le
-#   bruit de mesure** de votre jeu de référence. Mesurez ce bruit (bootstrap,
-#   cf. mini-cours 08) et prenez au moins 2 σ. Sous le bruit, le garde-fou se
-#   déclenche sur du hasard et vous perdez confiance en lui.
+# Stratégie hybride (plancher absolu + baisse max vs golden run).
+# Tolérances relatives dimensionnées par bootstrap (500 tirages, cf.
+# evaluation_thresholds.md) : toutes ≥ 2 σ mesuré sur data/reference_set.csv.
 THRESHOLDS: dict[str, dict[str, float]] = {
-    # "f1_macro": {"absolute_min": ..., "max_drop_vs_baseline": ...},
+    "f1_macro": {"absolute_min": 0.55, "max_drop_vs_baseline": 0.05},
+    "f1_default": {"absolute_min": 0.35, "max_drop_vs_baseline": 0.08},
+    "roc_auc": {"absolute_min": 0.65, "max_drop_vs_baseline": 0.06},
+    "recall_default": {"absolute_min": 0.50, "max_drop_vs_baseline": 0.10},
 }
 
 
@@ -69,9 +69,25 @@ def compute_metrics(model, df: pd.DataFrame, meta: dict) -> dict[str, float]:
 
 def check_thresholds(metrics: dict[str, float], baseline: dict) -> list[str]:
     """Retourne la liste des violations de seuil (vide = release OK)."""
-    # TODO 3 — comparer chaque métrique à son plancher absolu ET à la baisse
-    #   max tolérée vs baseline. Retourner les messages de violation.
-    raise NotImplementedError
+    violations: list[str] = []
+    for name, rule in THRESHOLDS.items():
+        value = metrics[name]
+
+        absolute_min = rule.get("absolute_min")
+        if absolute_min is not None and value < absolute_min:
+            violations.append(
+                f"{name}={value:.4f} sous le plancher absolu {absolute_min}"
+            )
+
+        max_drop = rule.get("max_drop_vs_baseline")
+        if max_drop is not None:
+            drop = baseline[name] - value
+            if drop > max_drop:
+                violations.append(
+                    f"{name} a baissé de {drop:.4f} vs baseline "
+                    f"({baseline[name]:.4f} -> {value:.4f}), tolérance {max_drop}"
+                )
+    return violations
 
 
 def load_baseline() -> dict:
@@ -150,17 +166,19 @@ def main() -> int:
     baseline = load_baseline()  # ← le golden run, PAS metrics_holdout
     violations = check_thresholds(metrics, baseline)
 
-    # --- Bloc MLflow PRÉ-CÂBLÉ — complétez params + metrics ------------------
+    # --- Bloc MLflow ---------------------------------------------------------
     mlflow.set_experiment("pyrenex-eval-continue")
     with mlflow.start_run(run_name=args.release_tag):
-        mlflow.log_params(
-            {
-                "model_version": meta["model_version"],
-                "release_tag": args.release_tag,
-                "reference_set": REFERENCE_SET.relative_to(ROOT).as_posix(),
-                "n_reference": len(df),
-            }
-        )
+        params = {
+            "model_version": meta["model_version"],
+            "release_tag": args.release_tag,
+            "reference_set": REFERENCE_SET.relative_to(ROOT).as_posix(),
+            "n_reference": len(df),
+            "dataset_sha256": meta["dataset_sha256"],
+        }
+        # Hyperparamètres du modèle lus depuis pyrenex_risk_v2.json — pas recopiés ici.
+        params.update({f"hp_{k}": v for k, v in meta["hyperparameters"].items()})
+        mlflow.log_params(params)
         mlflow.log_metrics(metrics)  # ← les 4 métriques tracées
         mlflow.set_tag("release_blocked", str(bool(violations)))
     # ------------------------------------------------------------------------
