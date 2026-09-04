@@ -2,7 +2,7 @@ name: CI/CD Pyrenex Prod
 
 on:
   push:
-    branches: [main]
+    branches: [main, M5-B2-theo]
     tags: ["v*"]
   pull_request:
     branches: [main]
@@ -26,8 +26,21 @@ jobs:
       - name: Contract test du modele (gate release)
         run: pytest -v services/model/tests -k "model_contract_features_and_output"
 
-  build-model-image:
+  evaluate-model:
     needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install deps (eval continue)
+        run: pip install -r requirements-dev.txt
+      - name: Evaluation continue vs golden run
+        run: python scripts/evaluate_model.py --release-tag "ci-${{ github.sha }}"
+
+  build-model-image:
+    needs: [tests, evaluate-model]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

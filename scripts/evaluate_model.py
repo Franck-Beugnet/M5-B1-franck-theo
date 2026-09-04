@@ -158,9 +158,13 @@ def main() -> int:
         return 0
 
     if args.degrade:
-        # TODO 4 — simuler un bug de preprocessing réaliste (ex. désaligner
-        #   X et y) pour PROUVER que le rouge bloque bien la release.
-        pass
+        # Simule un bug de preprocessing réaliste : la cible est désalignée
+        # des features (ex. jointure/merge cassé). Le modèle prédit toujours
+        # aussi bien, mais sur les mauvaises lignes → toutes les métriques
+        # s'effondrent, preuve que le garde-fou bloque bien la release.
+        df = df.copy()
+        target = meta["target_column"]
+        df[target] = df[target].sample(frac=1, random_state=0).reset_index(drop=True)
 
     metrics = compute_metrics(model, df, meta)
     baseline = load_baseline()  # ← le golden run, PAS metrics_holdout
